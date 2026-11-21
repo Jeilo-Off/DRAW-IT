@@ -8,7 +8,7 @@ import tkinter as tk
 from tkinter import messagebox
 import websockets
 
-DEFAULT_SERVER = os.getenv("DRAWIT_SERVER", "wss://REMPLACE-PAR-TON-SERVEUR.onrender.com")
+DEFAULT_SERVER = "wss://draw-it-server-bs9j.onrender.com"
 
 BG = "#21151e"
 PANEL = "#35232e"
