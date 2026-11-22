@@ -14,7 +14,7 @@ import websockets
 DEFAULT_SERVER = os.getenv("DRAWIT_SERVER", "wss://draw-it-server-bs9j.onrender.com")
 
 # Version et mise à jour automatique
-APP_VERSION = "1.0.1"
+APP_VERSION = "1.0.2"
 UPDATE_INFO_URL = "https://raw.githubusercontent.com/Jeilo-Off/DRAW-IT/main/update.json"
 APP_EXE_NAME = "DRAW IT.exe"
 
@@ -430,11 +430,22 @@ class DrawItApp:
         try:
             while True:
                 msg = self.events.get_nowait()
-                self.handle_message(msg)
+                try:
+                    self.handle_message(msg)
+                except Exception as error:
+                    # Une erreur sur un message ne doit pas bloquer toute l'interface.
+                    print(f"Erreur de traitement réseau : {error}")
         except queue.Empty:
             pass
-
-        self.root.after(50, self.process_events)
+        except tk.TclError:
+            # La fenêtre est en cours de fermeture.
+            return
+        finally:
+            try:
+                if self.root.winfo_exists():
+                    self.root.after(50, self.process_events)
+            except tk.TclError:
+                pass
 
     def handle_message(self, msg):
         typ = msg.get("type")
@@ -779,6 +790,7 @@ class DrawItApp:
             ("VERT", "#21a179"),
             ("JAUNE", "#d6ff00"),
             ("ROSE", "#ff00c5"),
+            ("MARRON", "#582900"),
             ("GOMME", "white")
         ]:
             self.button(
@@ -903,9 +915,9 @@ if __name__ == "__main__":
         notes = update.get("notes", "Nouvelles améliorations disponibles.")
         choice = messagebox.askyesno(
             "NEW UPDATE",
-            f"Une nouvelle version de DRAW IT! ({latest}) est disponible.\\n\\n"
-            f"{notes}\\n\\n"
-            "Oui : télécharger et installer la mise à jour\\n"
+            f"Une nouvelle version de DRAW IT! ({latest}) est disponible.\n\n"
+            f"{notes}\n\n"
+            "Oui : télécharger et installer la mise à jour\n"
             "Non : quitter le jeu"
         )
         if choice:
