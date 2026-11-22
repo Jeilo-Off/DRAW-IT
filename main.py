@@ -14,7 +14,7 @@ import websockets
 DEFAULT_SERVER = os.getenv("DRAWIT_SERVER", "wss://draw-it-server-bs9j.onrender.com")
 
 # Version et mise à jour automatique
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.0.1"
 UPDATE_INFO_URL = "https://raw.githubusercontent.com/Jeilo-Off/DRAW-IT/main/update.json"
 APP_EXE_NAME = "DRAW IT.exe"
 
