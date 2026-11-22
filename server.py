@@ -15,7 +15,7 @@ WORDS = [
     "requin", "chaussette", "robot", "château",
     "licorne", "parapluie", "tortue", "hamburger",
     "fantôme", "avion", "soleil", "ordinateur",
-    "grenouille", "couronne", "glace"
+    "grenouille", "couronne", "glace", "citrouille",
 ]
 
 rooms = {}
@@ -110,6 +110,7 @@ async def begin_round(room):
     room["strokes"] = []
     room["revealed"] = False
     room["guessed"] = set()
+    room["round_ending"] = False
 
     for pid, player in room["players"].items():
         await send(player["ws"], {
@@ -125,15 +126,29 @@ async def begin_round(room):
         })
 
 
-async def reveal_timeout(room):
+async def reveal_timeout(room, round_number):
+    # Le délai de réponse commence quand le dessin est révélé.
     await asyncio.sleep(60)
-    if room.get("playing") and room.get("revealed"):
-        await finish_round(room)
+    if (
+        room.get("playing")
+        and room.get("round") == round_number
+        and room.get("revealed")
+    ):
+        await finish_round(room, round_number)
 
 
-async def finish_round(room):
-    if not room.get("playing"):
+async def finish_round(room, round_number=None):
+    # Empêche deux événements (chrono + bonnes réponses) de finir
+    # la même manche plusieurs fois.
+    if (
+        not room.get("playing")
+        or room.get("round_ending", False)
+        or (round_number is not None and room.get("round") != round_number)
+    ):
         return
+
+    room["round_ending"] = True
+    finished_round = room["round"]
 
     await broadcast(room, {
         "type": "round_end",
@@ -143,7 +158,7 @@ async def finish_round(room):
 
     await asyncio.sleep(4)
 
-    if room.get("playing"):
+    if room.get("playing") and room.get("round") == finished_round:
         await begin_round(room)
 
 
@@ -169,7 +184,8 @@ async def handler(ws):
                 "word": "",
                 "strokes": [],
                 "revealed": False,
-                "guessed": set()
+                "guessed": set(),
+                "round_ending": False
             }
 
         elif action == "join":
@@ -269,7 +285,7 @@ async def handler(ws):
                     "strokes": room["strokes"]
                 })
 
-                asyncio.create_task(reveal_timeout(room))
+                asyncio.create_task(reveal_timeout(room, room["round"]))
 
             elif typ == "guess" and room.get("playing") and room.get("revealed") and player_id != room.get("artist"):
                 guess = str(msg.get("text", ""))[:40]
@@ -292,7 +308,7 @@ async def handler(ws):
                     })
 
                     if len(room["guessed"]) >= len(room["players"]) - 1:
-                        await finish_round(room)
+                        await finish_round(room, room["round"])
 
                 else:
                     await send(ws, {
